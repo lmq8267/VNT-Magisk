@@ -799,6 +799,11 @@
                 "packet_delay: 0 # 指定延迟 单位毫秒 用于模拟弱网",
             );
             document.getElementById("output").textContent = config.join("\n");
+            // 🔽 自动滚动到输出区域
+            document.getElementById("output").scrollIntoView({
+                behavior: "smooth", // 平滑滚动
+                block: "start"      // 滚动到顶部
+            });
         }
 
         function copyOutput() {
