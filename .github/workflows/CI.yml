@@ -47,7 +47,9 @@ jobs:
           body: |
            > ### ![](https://img.shields.io/badge/%E6%89%93%E5%8C%85%E6%97%B6%E9%97%B4-${{ env.zip_time }}-8267?logo=github&labelColor=%E9%A1%BB)![](https://img.shields.io/github/downloads/${{ github.repository }}/${{ env.tag }}/total?label=%E4%B8%8B%E8%BD%BD%E6%AC%A1%E6%95%B0&logo=github)
 
-
+            内置的二进制程序是`arm64`架构的  
+            安装之后，请修改里面的配置文件`/data/adb/modules/vnt_magisk/config.toml` 可使用[配置文件生成器](https://lmq8267.github.io/VNT-Magisk/)在线生成
+            
            ${{ github.event.inputs.text }}
 
           tag_name: ${{ env.tag }}
