@@ -1,0 +1,59 @@
+name: 打包发布
+on:
+  workflow_dispatch:
+    inputs:
+      text:
+        description: '请填写发布的说明'
+        required: false
+        default: ''
+      tag:
+        description: '请填写发布的版本号'
+        required: true
+        default: ''
+env:
+  TZ: Asia/Shanghai
+
+#设置仓库的读写权限
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: delete-workflow
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          retain_days: 0
+          keep_minimum_runs: 0
+      - name: tar
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+          cd vnt_Magisk
+          zip -r vnt_Magisk.zip ./*
+          echo "zip_time=$(date '+%Y年%m月%d日%H:%M:%S' | jq -sRr @uri)" >> $GITHUB_ENV
+          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+      - 
+        name: 发布
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+           > ### ![](https://img.shields.io/badge/%E6%89%93%E5%8C%85%E6%97%B6%E9%97%B4-${{ env.zip_time }}-8267?logo=github&labelColor=%E9%A1%BB)![](https://img.shields.io/github/downloads/${{ github.repository }}/${{ env.tag }}/total?label=%E4%B8%8B%E8%BD%BD%E6%AC%A1%E6%95%B0&logo=github)
+
+
+           ${{ github.event.inputs.text }}
+
+          tag_name: ${{ env.tag }}
+          files: vnt_Magisk/vnt_Magisk.zip
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          force_with_lease: true
+     

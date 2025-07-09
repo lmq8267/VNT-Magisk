@@ -1,0 +1,7 @@
+id=vnt_magisk
+name=VNT_Magisk
+version=v1.2.16
+versionCode=1
+author=vnt-dev
+description=A simple and efficient tool for remote networking and NAT traversal.
+
