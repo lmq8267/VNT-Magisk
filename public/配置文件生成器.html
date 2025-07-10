@@ -316,6 +316,15 @@
             margin-left: 8px;
             display: none;
         }
+
+        button:disabled {
+            background-color: #ccc;
+            color: #888;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none !important;
+            opacity: 0.7;
+        }
     </style>
 </head>
 
@@ -501,7 +510,7 @@
                 <button class="add-btn" onclick="addListItem('stun')">+ 添加</button>
 
                 <div class="form-line">
-                    <label for="disable_stats" title="--disable-stats  关闭流量统计，减少性能占用（低性能设备建议关闭）">内置IP代理:</label>
+                    <label for="disable_stats" title="--disable-stats  关闭流量统计，减少性能占用（低性能设备建议关闭）">流量统计:</label>
                     <div class="wg-toggle">
                         <label class="custom-radio">
                             <input type="radio" name="disable_stats" value="false">
@@ -514,6 +523,30 @@
                     </div>
                 </div>
 
+                <div class="form-line">
+                    <label for="disable_cmd" title="--cmd  开启交互式命令,使用此参数开启控制台输入">控制台输入:</label>
+                    <div class="wg-toggle">
+                        <label class="custom-radio">
+                            <input type="radio" name="disable_cmd" value="true">
+                            <span class="box-check"></span>开启
+                        </label>
+                        <label class="custom-radio">
+                            <input type="radio" name="disable_cmd" value="false" checked>
+                            <span class="box-check"></span>关闭
+                        </label>
+                    </div>
+                </div>
+
+                <label title="--packet-loss  模拟丢包,取值0~1之间的小数,程序会按设定的概率主动丢包,可用于模拟弱网环境进行测试">
+                    模拟丢包率:
+                </label>
+                <input id="packet_loss" type="number" min="0" max="1" step="0.01" placeholder="0" />
+
+                <label title="--packet-delay 模拟延迟，正整数，单位毫秒，程序将根据设定值延迟发送数据包，可用于模拟弱网环境进行测试">
+                    模拟延迟（ms）:
+                </label>
+                <input id="packet_delay" type="number" min="1" step="1" placeholder="0" />
+
             </div>
 
             <br><button class="button-group" onclick="generateConfig()">生成配置</button>
@@ -524,8 +557,8 @@
             <h2>配置文件生成区域</h2>
             <pre id="output">请先填写启动参数后再点击生成配置</pre>
             <div class="button-group">
-                <button onclick="copyOutput()">复制</button>
-                <button onclick="downloadYaml()">下载</button>
+                <button id="copyBtn" onclick="copyOutput()" disabled>复制</button>
+                <button id="downloadBtn" onclick="downloadYaml()" disabled>下载</button>
             </div>
         </div>
     </div>
@@ -697,16 +730,75 @@
             if (error) error.remove();
         }
 
+        // 显示 packet_loss 错误提示
+        function showPacketLossError(message) {
+            const input = document.getElementById("packet_loss");
+            input.classList.add("input-error");
+            input.focus();
+
+            const oldError = document.getElementById("packet_loss-error");
+            if (oldError) oldError.remove();
+
+            const error = document.createElement("div");
+            error.id = "packet_loss-error";
+            error.style.color = "red";
+            error.style.fontSize = "13px";
+            error.style.marginTop = "4px";
+            error.textContent = message;
+            input.insertAdjacentElement("afterend", error);
+
+            input.classList.add("blink");
+        }
+
+        function clearPacketLossError() {
+            const input = document.getElementById("packet_loss");
+            input.classList.remove("input-error", "blink");
+            const error = document.getElementById("packet_loss-error");
+            if (error) error.remove();
+        }
+
+        // 显示 packet_delay 错误提示
+        function showPacketDelayError(message) {
+            const input = document.getElementById("packet_delay");
+            input.classList.add("input-error");
+            input.focus();
+
+            const oldError = document.getElementById("packet_delay-error");
+            if (oldError) oldError.remove();
+
+            const error = document.createElement("div");
+            error.id = "packet_delay-error";
+            error.style.color = "red";
+            error.style.fontSize = "13px";
+            error.style.marginTop = "4px";
+            error.textContent = message;
+            input.insertAdjacentElement("afterend", error);
+
+            input.classList.add("blink");
+        }
+
+        function clearPacketDelayError() {
+            const input = document.getElementById("packet_delay");
+            input.classList.remove("input-error", "blink");
+            const error = document.getElementById("packet_delay-error");
+            if (error) error.remove();
+        }
+
         // 生成配置
         function generateConfig() {
             clearTokenError();
             clearIpError();
             clearMtuError();
             cleardeviceidError();
+            clearPacketLossError();
+            clearPacketDelayError();
+
             const tokenVal = getVal("token");
             const ipVal = getVal("ip");
             const mtuVal = getVal("mtu");
             const deviceidVal = getVal("device_id");
+            const packetLossVal = getVal("packet_loss");
+            const packetDelayVal = getVal("packet_delay");
 
             // 1. 必填校验
             if (!tokenVal) {
@@ -738,6 +830,28 @@
                 }
             }
 
+            // 6.校验 packet_loss
+            if (packetLossVal) {
+                const lossNum = Number(packetLossVal);
+                if (isNaN(lossNum) || lossNum < 0 || lossNum > 1) {
+                    showPacketLossError("丢包率必须是0到1之间的小数");
+                    return;
+                }
+            }
+
+            // 7.校验 packet_delay
+            if (packetDelayVal) {
+                const delayNum = Number(packetDelayVal);
+                if (!Number.isInteger(delayNum) || delayNum < 0 || delayNum > 10000) {
+                    showPacketDelayError("延迟必须是0到10000之间的整数（单位毫秒）");
+                    return;
+                }
+                if (/^0\d+/.test(packetDelayVal)) {
+                    showPacketDelayError("延迟值不能以0开头");
+                    return;
+                }
+            }
+
             let config = [];
 
             const push = (key, value, comment = "") => {
@@ -765,40 +879,70 @@
             if (getVal("compressor")) push("compressor", getVal("compressor"), "压缩方式");
             const wgRadio = document.querySelector('input[name="allow_wire_guard"]:checked');
             const wgAllowed = wgRadio ? wgRadio.value : "false";
-            push("allow_wire_guard", wgAllowed, "为true则表示允许接入wg");
+            if (wgAllowed === "true") {
+                push("allow_wire_guard", "true", "为true则表示允许接入wg");
+            }
             pushList("in_ips", getList("in_ips"), "对端网段(代理ip入站)");
             pushList("out_ips", getList("out_ips"), "本地网段(代理ip出站)");
             pushList("mapping", getList("mapping"), "端口映射");
-            if (getVal("cipher_model")) push("cipher_model", getVal("cipher_model"), "加密方式");
-            if (getVal("password")) push("password", getVal("password"), "组网密码");
+            const password = getVal("password");
+            const cipherModel = getVal("cipher_model");
+            if (password) {
+                // 如果加密方式不为默认的 aes_gcm 才写入配置
+                if (cipherModel && cipherModel !== "aes_gcm") {
+                    push("cipher_model", cipherModel, "加密方式");
+                }
+                // 有密码时先 push password
+                push("password", password, "组网密码");
+            }
             const seRadio = document.querySelector('input[name="server_encrypt"]:checked');
             const serverencrypt = seRadio ? seRadio.value : "false";
-            push("server_encrypt", serverencrypt, "为true则表示启用服务端加密");
+            if (serverencrypt === "true") {
+                push("server_encrypt", "true", "为true则表示启用服务端加密");
+            }
             const fRadio = document.querySelector('input[name="finger"]:checked');
             const sfinger = fRadio ? fRadio.value : "false";
-            push("finger", sfinger, "为true则表示启用数据指纹校验");
+            if (sfinger === "true") {
+                push("finger", "true", "为true则表示启用数据指纹校验");
+            }
             if (getVal("local_dev")) push("local_dev", getVal("local_dev"), "本地出口网卡的名称");
             if (getVal("device_name")) push("device_name", getVal("device_name"), "虚拟网卡名称");
             if (getVal("mtu")) push("mtu", getVal("mtu"), "mtu");
             if (getVal("punch_model")) push("punch_model", getVal("punch_model"), "打洞模式");
             if (getVal("use_channel")) push("use_channel", getVal("use_channel"), "传输模式");
             pushList("ports", getList("ports"), "监听端口");
-            if (getVal("first_latency")) push("first_latency", getVal("first_latency"), "路径模式");
+            if (getVal("first_latency") === "true") {
+                push("first_latency", "true", "路径模式-为true表示延迟优先");
+            }
             const npRadio = document.querySelector('input[name="no_proxy"]:checked');
             const noproxy = npRadio ? npRadio.value : "false";
-            push("no_proxy", noproxy, "为true则表示关闭内置IP代理(关闭后需要自行配置防火墙规则转发)");
+            if (noproxy === "true") {
+                push("no_proxy", "true", "为true则表示关闭内置IP代理(关闭后需要自行配置防火墙规则转发)");
+            }
             pushList("dns", getList("dns"), "dns服务器");
             pushList("stun_server", getList("stun"), "stun服务器");
             const dsRadio = document.querySelector('input[name="disable_stats"]:checked');
             const disablestats = dsRadio ? dsRadio.value : "false";
-            push("disable_stats", disablestats, "为true则表示关闭流量统计(低性能设备不建议开启会占用部分性能)");
+            if (disablestats === "true") {
+                push("disable_stats", "true", "为true则表示关闭流量统计(低性能设备不建议开启会占用部分性能)");
+            }
+            const cmdRadio = document.querySelector('input[name="disable_cmd"]:checked');
+            const disablecmd = cmdRadio ? cmdRadio.value : "false";
+            if (disablecmd === "true") {
+                push("cmd", "true", "为true则表示开启控制台输入");
+            }
+            const loss = getVal("packet_loss");
+            if (loss && loss !== "0") {
+                push("packet_loss", loss, "指定丢包率 取值0~1之间的数 用于模拟弱网");
+            }
+            const delay = getVal("packet_delay");
+            if (delay && delay !== "0") {
+                push("packet_delay", delay, "指定延迟 单位毫秒 用于模拟弱网");
+            }
 
-            config.push(
-                "cmd: false # 关闭控制台输入",
-                "packet_loss: 0 # 指定丢包率 取值0~1之间的数 用于模拟弱网",
-                "packet_delay: 0 # 指定延迟 单位毫秒 用于模拟弱网",
-            );
             document.getElementById("output").textContent = config.join("\n");
+            document.getElementById("copyBtn").disabled = false;
+            document.getElementById("downloadBtn").disabled = false;
             // 🔽 自动滚动到输出区域
             document.getElementById("output").scrollIntoView({
                 behavior: "smooth", // 平滑滚动
@@ -897,6 +1041,7 @@
                 });
             }
         });
+
     </script>
 </body>
 
