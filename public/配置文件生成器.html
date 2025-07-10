@@ -490,11 +490,11 @@
                         title="--no-proxy  内置的代理较为简单，而且一般来说直接使用网卡NAT转发性能会更高， 有需要可以自行配置NAT转发（关闭后需要自行配置防火墙规则转发）">内置IP代理:</label>
                     <div class="wg-toggle">
                         <label class="custom-radio">
-                            <input type="radio" name="no_proxy" value="false">
+                            <input type="radio" name="no_proxy" value="false" checked>
                             <span class="box-check"></span>开启
                         </label>
                         <label class="custom-radio">
-                            <input type="radio" name="no_proxy" value="true" checked>
+                            <input type="radio" name="no_proxy" value="true">
                             <span class="box-check"></span>关闭
                         </label>
                     </div>
@@ -513,11 +513,11 @@
                     <label for="disable_stats" title="--disable-stats  关闭流量统计，减少性能占用（低性能设备建议关闭）">流量统计:</label>
                     <div class="wg-toggle">
                         <label class="custom-radio">
-                            <input type="radio" name="disable_stats" value="false">
+                            <input type="radio" name="disable_stats" value="false" checked>
                             <span class="box-check"></span>开启
                         </label>
                         <label class="custom-radio">
-                            <input type="radio" name="disable_stats" value="true" checked>
+                            <input type="radio" name="disable_stats" value="true">
                             <span class="box-check"></span>关闭
                         </label>
                     </div>
